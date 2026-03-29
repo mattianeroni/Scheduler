@@ -1,3 +1,4 @@
-from scheduler.solver.utils import sum_variables_from_indices
+from scheduler.scheduler import Scheduler
 
-print("Hello, World!")
+if __name__ == "__main__":
+    Scheduler(input_path="./simulation/inputs", output_path="./simulations/outputs").run()
