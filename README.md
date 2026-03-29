@@ -3,7 +3,7 @@
 
 ## Prerequisites
 
-- Python 3.12+
+- Python 3.11+
 
 ## Install dependencies
 
@@ -21,11 +21,16 @@ Or (if you use `pyproject.toml` optional dependencies):
 pip install -e .[test]
 ```
 
-## Run the app
+## Run via code
 
 ```bash
 source .venv/bin/activate
 python main.py
+```
+
+## Run via cli 
+```bash
+python -m scheduler.cli --input-path <input-folder> --output-path <output-folder>
 ```
 
 ## Run tests

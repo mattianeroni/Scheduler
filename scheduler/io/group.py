@@ -7,7 +7,7 @@ from pandera.typing import Series
 from scheduler.io.base import BaseReader
 
 
-class ResourceGroupSchema(pa.DataFrameModel):
+class GroupSchema(pa.DataFrameModel):
     resource_name: Series[str] = pa.Field(coerce=True)
     group_name: Series[int] = pa.Field(coerce=True)
 
@@ -15,7 +15,7 @@ class ResourceGroupSchema(pa.DataFrameModel):
 class GroupReader(BaseReader):
     
     def __init__(self, filepath: str):
-        super().__init__(filepath, schema=ResourceGroupSchema)
+        super().__init__(filepath, schema=GroupSchema)
 
     def _transform(self, df: pl.DataFrame) -> pl.DataFrame:
         return df.unique("group_name", "resource_name").group_by("group_name").agg("resource_name").with_row_index("id")

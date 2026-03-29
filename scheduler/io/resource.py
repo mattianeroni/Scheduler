@@ -14,6 +14,10 @@ class ResourceSchema(pa.DataFrameModel):
     def primary_key_check(cls, data: pa.PolarsData):
         return data.lazyframe.unique("name").collect().height == data.lazyframe.collect().height
     
+    @pa.dataframe_check(error="No resources provided.")
+    def empty_check(cls, data: pa.PolarsData):
+        return data.lazyframe.collect().height > 0
+    
     @pa.dataframe_check(error="Capacities cannot be negative.")
     def capacity_check(cls, data: pa.PolarsData):
         return data.lazyframe.select((pl.col.capacity > 0).all()).collect().item()

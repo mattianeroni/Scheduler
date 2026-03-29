@@ -2,10 +2,11 @@ from __future__ import annotations
 
 import numpy as np
 import cvxpy as cp
+import numpy.typing as npt
 from scipy.sparse import csr_matrix
 
 
-def sum_variables_from_indices(variables, indices):
+def sum_variables_from_indices(variables: cp.Variable, indices: npt.NDArray[np.int32]) -> cp.Variable:
     if indices.dtype != np.object_:
         return variables[indices]  # type: ignore
     num_rows, num_cols = indices.shape[0], variables.shape[0]

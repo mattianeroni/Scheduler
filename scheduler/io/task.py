@@ -18,6 +18,10 @@ class TaskSchema(pa.DataFrameModel):
     def primary_key_check(cls, data: pa.PolarsData):
         return data.lazyframe.unique("name").collect().height == data.lazyframe.collect().height
     
+    @pa.dataframe_check(error="No tasks provided.")
+    def empty_check(cls, data: pa.PolarsData):
+        return data.lazyframe.collect().height > 0
+    
     @pa.dataframe_check(error="Durations cannot be negative.")
     def duration_check(cls, data: pa.PolarsData):
         return data.lazyframe.select((pl.col.duration > 0).all()).collect().item()

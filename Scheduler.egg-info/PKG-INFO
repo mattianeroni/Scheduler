@@ -1,0 +1,88 @@
+Metadata-Version: 2.4
+Name: Scheduler
+Version: 0.1.0
+Summary: A scheduling library
+Author-email: Unknown <unknown@example.com>
+License: MIT
+Requires-Python: >=3.8
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: cffi==2.0.0
+Requires-Dist: clarabel==0.11.1
+Requires-Dist: contourpy==1.3.3
+Requires-Dist: cvxpy==1.8.2
+Requires-Dist: cycler==0.12.1
+Requires-Dist: fonttools==4.62.1
+Requires-Dist: highspy==1.13.1
+Requires-Dist: Jinja2==3.1.6
+Requires-Dist: joblib==1.5.3
+Requires-Dist: kiwisolver==1.5.0
+Requires-Dist: MarkupSafe==3.0.3
+Requires-Dist: matplotlib==3.10.8
+Requires-Dist: numpy==2.4.3
+Requires-Dist: osqp==1.1.1
+Requires-Dist: packaging==26.0
+Requires-Dist: pillow==12.1.1
+Requires-Dist: polars==1.39.3
+Requires-Dist: polars-runtime-32==1.39.3
+Requires-Dist: pycparser==3.0
+Requires-Dist: pyparsing==3.3.2
+Requires-Dist: python-dateutil==2.9.0.post0
+Requires-Dist: scipy==1.17.1
+Requires-Dist: scs==3.2.11
+Requires-Dist: setuptools==82.0.1
+Requires-Dist: six==1.17.0
+Requires-Dist: pandera==0.30.1
+Dynamic: license-file
+
+# Scheduler
+
+
+## Prerequisites
+
+- Python 3.12+
+
+## Install dependencies
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install --upgrade pip
+pip install -e .
+pip install pytest
+```
+
+Or (if you use `pyproject.toml` optional dependencies):
+
+```bash
+pip install -e .[test]
+```
+
+## Run the app
+
+```bash
+source .venv/bin/activate
+python main.py
+```
+
+## Run tests
+
+```bash
+source .venv/bin/activate
+pytest
+```
+
+## Build
+
+```bash
+source .venv/bin/activate
+python -m build
+```
+
+## VS Code debugging
+
+Use the provided `.vscode/launch.json` with:
+- Python: Run main.py
+- Python: Pytest
+
+Ensure `PYTHONPATH` is `${workspaceFolder}/src` or run `export PYTHONPATH=$PWD/src`.
