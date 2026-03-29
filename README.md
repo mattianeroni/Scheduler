@@ -1,4 +1,4 @@
-# Scheduling
+# Scheduler
 
 
 ## Prerequisites
