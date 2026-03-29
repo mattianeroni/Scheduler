@@ -1,11 +1,9 @@
 # Scheduling
 
-A simple Python scheduling package with `task` and `solver` modules under `src/`.
 
 ## Prerequisites
 
-- Python 3.8+
-- Git (optional)
+- Python 3.12+
 
 ## Install dependencies
 
