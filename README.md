@@ -8,7 +8,6 @@
 ## Install dependencies
 
 ```bash
-cd /Users/mattianeroni/python-projects/scheduling
 python -m venv .venv
 source .venv/bin/activate
 pip install --upgrade pip
