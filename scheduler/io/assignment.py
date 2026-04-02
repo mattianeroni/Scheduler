@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pandera.polars as pa
 import polars as pl
-from pandera.typing import Series
+from pandera.typing.polars import Series
 
 from scheduler.io.base import BaseReader
 

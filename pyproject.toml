@@ -42,3 +42,6 @@ dependencies = [
   "pandera==0.30.1",
   "tomli==2.4.1",
 ]
+
+[tool.setuptools]
+packages = ["scheduler", "test"]

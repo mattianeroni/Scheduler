@@ -14,6 +14,7 @@ from scheduler.io.resource import ResourceReader
 from scheduler.io.group import GroupReader
 from scheduler.io.assignment import ResourceAssignmentReader, GroupAssignmentReader
 from scheduler.problem.problem import SchedulingProblem
+from scheduler.utils import setup_logging
 
 logger = logging.Logger(__name__)
 
@@ -24,16 +25,6 @@ class Scheduler:
     def __init__(self, input_path: str, output_path: str):
         self.input_path = pathlib.Path(input_path)
         self.output_path = pathlib.Path(output_path)
-
-    def _setup_logging(self):
-        logging.basicConfig(
-            level=logging.INFO,
-            format="%(asctime)s | %(name)-12s | %(levelname)-8s | %(message)s",
-            handlers=[
-                logging.StreamHandler(sys.stdout),
-                logging.FileHandler(self.output_path / "project_debug.log")
-            ]
-        )
 
     def _validate_input(self):
         config_path = self.input_path / InputFiles.CONFIG
@@ -77,7 +68,7 @@ class Scheduler:
 
     def run(self):
         self.output_path.mkdir(parents=True, exist_ok=True)
-        self._setup_logging()
+        setup_logging()
 
         logger.info("Scheduler execution.")
         logger.info(f"Input folder: {self.input_path.as_posix()}")
