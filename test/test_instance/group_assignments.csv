@@ -1,0 +1,5 @@
+task_name,group_name,require_all_group
+Meeting_0,0,false
+Meeting_1,1,false
+Meeting_2,0,false
+Meeting_3,0,true
