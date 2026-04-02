@@ -16,7 +16,7 @@ from scheduler.io.assignment import ResourceAssignmentReader, GroupAssignmentRea
 from scheduler.problem.problem import SchedulingProblem
 from scheduler.utils import setup_logging
 
-logger = logging.Logger(__name__)
+logger = logging.getLogger(__name__)
 
 
 

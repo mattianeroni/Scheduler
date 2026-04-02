@@ -18,7 +18,7 @@ import polars as pl
 
 from scheduler.utils import setup_logging
 
-logger = logging.Logger(__name__)
+logger = logging.getLogger(__name__)
 
 SUBJECTS = [
     "Math", "Physics", "Chemistry", "Biology", "History",
@@ -50,6 +50,10 @@ def generate_instance(
     avg_eligible_groups: int = 3,
     seed: int | None = None,
 ):
+    output_path = pathlib.Path(output_path)
+    output_path.mkdir(parents=True, exist_ok=True)
+    setup_logging(output_path)
+
     if seed is not None:
         random.seed(seed)
 
@@ -158,8 +162,6 @@ def generate_instance(
                 })
         group_assignments = pl.DataFrame(ga_rows)
 
-    output_path = pathlib.Path(output_path)
-    output_path.mkdir(parents=True, exist_ok=True)
     resources.write_csv(output_path / "resources.csv")
     tasks.write_csv(output_path / "tasks.csv")
     groups.write_csv(output_path / "groups.csv")
@@ -167,11 +169,11 @@ def generate_instance(
     group_assignments.write_csv(output_path / "group_assignments.csv")
 
     logger.info(f"Instance written to {output_path.as_posix()}/")
-    logger.info(f"  Resources:            {resources.height}")
-    logger.info(f"  Tasks:                {tasks.height} ({n_classes} classes + {n_meetings} meetings)")
-    logger.info(f"  Groups:               {groups.unique('group_name').height}")
+    logger.info(f"  Resources: {resources.height}")
+    logger.info(f"  Tasks: {tasks.height} ({n_classes} classes + {n_meetings} meetings)")
+    logger.info(f"  Groups: {groups.unique('group_name').height}")
     logger.info(f"  Resource assignments: {resource_assignments.height}")
-    logger.info(f"  Group assignments:    {group_assignments.height}")
+    logger.info(f"  Group assignments: {group_assignments.height}")
 
 
 if __name__ == "__main__":
