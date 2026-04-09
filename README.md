@@ -54,3 +54,10 @@ Use the provided `.vscode/launch.json` with:
 - Python: Pytest
 
 Ensure `PYTHONPATH` is `${workspaceFolder}/src` or run `export PYTHONPATH=$PWD/src`.
+
+## Bug Report
+
+Contact: [mattianeroni93@gmail.com](mailto:mattianeroni93@gmail.com)
+
+## ToDo
+- Introduce additional concept of task group. Forcing the scenario where, if a resource takes care of a task, it must take care of all the tasks in the group

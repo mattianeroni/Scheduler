@@ -4,7 +4,7 @@ import pandera.polars as pa
 import polars as pl
 from pandera.typing.polars import Series
 
-from scheduler.io.base import BaseReader
+from scheduler.io.base import BaseInput
 
 
 class ResourceAssignmentSchema(pa.DataFrameModel):
@@ -14,20 +14,20 @@ class ResourceAssignmentSchema(pa.DataFrameModel):
 
     @pa.dataframe_check(error="Assignments Task-Resource name must be unique.")
     def primary_key_check(cls, data: pa.PolarsData):
-        return data.lazyframe.unique("task_name", "resource_name").collect().height == data.lazyframe.collect().height
+        return data.lazyframe.unique(["task_name", "resource_name"]).collect().height == data.lazyframe.collect().height
 
     @pa.dataframe_check(error="No assignments task-resource provided.")
     def empty_check(cls, data: pa.PolarsData):
         return data.lazyframe.collect().height > 0
     
 
-class ResourceAssignmentReader(BaseReader):
+class ResourceAssignments(BaseInput):
 
     def __init__(self, filepath: str):
         super().__init__(filepath, schema=ResourceAssignmentSchema)
 
     def _transform(self, df: pl.DataFrame) -> pl.DataFrame:
-        return df.with_columns(pl.col.type.fill_null(pl.lit("relaxed"))).with_row_index("id")
+        return df.with_columns(pl.col.type.fill_null(pl.lit("relaxed")))
     
 
 class GroupAssignmentSchema(pa.DataFrameModel):
@@ -37,16 +37,13 @@ class GroupAssignmentSchema(pa.DataFrameModel):
     
     @pa.dataframe_check(error="Assignments Task-Group name must be unique.")
     def primary_key_check(cls, data: pa.PolarsData):
-        return data.lazyframe.unique("task_name", "group_name").collect().height == data.lazyframe.collect().height
+        return data.lazyframe.unique(["task_name", "group_name"]).collect().height == data.lazyframe.collect().height
     
 
-class GroupAssignmentReader(BaseReader):
+class GroupAssignments(BaseInput):
 
     def __init__(self, filepath: str):
         super().__init__(filepath, schema=GroupAssignmentSchema)
     
     def _transform(self, df: pl.DataFrame) -> pl.DataFrame:
-        return (
-            df.with_columns(pl.col.require_all_group.fill_null(False))
-            .with_row_index("id")
-        )
+        return df.with_columns(pl.col.require_all_group.fill_null(False))

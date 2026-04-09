@@ -40,6 +40,8 @@ dependencies = [
   "setuptools==82.0.1",
   "six==1.17.0",
   "pandera==0.30.1",
+  "pyarrow",
+  "pandas",
   "tomli==2.4.1",
 ]
 

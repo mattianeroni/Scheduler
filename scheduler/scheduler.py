@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import sys
 import logging
 import pathlib
 
@@ -9,10 +8,10 @@ import tomllib
 from scheduler.files_properties import InputFiles
 from scheduler.config import Config
 from scheduler.error import SchedulerIOError
-from scheduler.io.task import TaskReader
-from scheduler.io.resource import ResourceReader
-from scheduler.io.group import GroupReader
-from scheduler.io.assignment import ResourceAssignmentReader, GroupAssignmentReader
+from scheduler.io.task import Tasks
+from scheduler.io.resource import Resources
+from scheduler.io.group import ResourceGroups
+from scheduler.io.assignment import ResourceAssignments, GroupAssignments
 from scheduler.problem.problem import SchedulingProblem
 from scheduler.utils import setup_logging
 
@@ -35,7 +34,7 @@ class Scheduler:
         for filename in (
             InputFiles.TASKS, 
             InputFiles.RESOURCES, 
-            InputFiles.GROUPS, 
+            InputFiles.RESOURCE_GROUPS, 
             InputFiles.RESOURCE_ASSIGNMENTS, 
             InputFiles.GROUP_ASSIGNMENTS
             ):
@@ -52,23 +51,23 @@ class Scheduler:
         return Config(**config_data)
 
     def _load_problem(self, config: Config) -> SchedulingProblem:
-        task = TaskReader(self.input_path / InputFiles.TASKS)
-        resource = ResourceReader(self.input_path / InputFiles.RESOURCES)
-        group = GroupReader(self.input_path / InputFiles.GROUPS)
-        resource_assignment = ResourceAssignmentReader(self.input_path / InputFiles.RESOURCE_ASSIGNMENTS)
-        group_assignment = GroupAssignmentReader(self.input_path / InputFiles.GROUP_ASSIGNMENTS)
+        tasks = Tasks(self.input_path / InputFiles.TASKS)
+        resources = Resources(self.input_path / InputFiles.RESOURCES)
+        resource_groups = ResourceGroups(self.input_path / InputFiles.RESOURCE_GROUPS)
+        resource_assignments = ResourceAssignments(self.input_path / InputFiles.RESOURCE_ASSIGNMENTS)
+        group_assignments = GroupAssignments(self.input_path / InputFiles.GROUP_ASSIGNMENTS)
         return SchedulingProblem(
             config=config,
-            task=task, 
-            resource=resource, 
-            group=group, 
-            resource_assignment=resource_assignment,
-            group_assignment=group_assignment,
+            tasks=tasks, 
+            resources=resources, 
+            resource_groups=resource_groups, 
+            resource_assignments=resource_assignments,
+            group_assignments=group_assignments,
         )
 
     def run(self):
         self.output_path.mkdir(parents=True, exist_ok=True)
-        setup_logging()
+        setup_logging(self.output_path)
 
         logger.info("Scheduler execution.")
         logger.info(f"Input folder: {self.input_path.as_posix()}")
@@ -83,8 +82,8 @@ class Scheduler:
         problem = self._load_problem(config)
         logger.info("Problem loaded.")
 
+        problem.build()
         problem.validate()
-        logger.info("Problem validated.")
 
         logger.info("Schedule execution concluded successfully.")
     

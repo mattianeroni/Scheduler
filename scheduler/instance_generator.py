@@ -17,6 +17,7 @@ import logging
 import polars as pl
 
 from scheduler.utils import setup_logging
+from scheduler.files_properties import InputFiles
 
 logger = logging.getLogger(__name__)
 
@@ -60,7 +61,7 @@ def generate_instance(
     # Resources
     resource_names = [f"Prof_{i}" for i in range(n_resources)]
     resource_capacitites = [float(timehorizon // 2)] * n_resources
-    resources = pl.DataFrame({"name": resource_names, "capacity": resource_capacitites})
+    resources = pl.DataFrame({"resource_name": resource_names, "capacity": resource_capacitites})
 
     # Tasks
     tasks_rows: list[dict] = []
@@ -82,7 +83,7 @@ def generate_instance(
             end = None
 
         tasks_rows.append({
-            "name": name,
+            "task_name": name,
             "duration": duration,
             "start": start,
             "end": end,
@@ -105,7 +106,7 @@ def generate_instance(
             end = None
 
         tasks_rows.append({
-            "name": name,
+            "task_name": name,
             "duration": duration,
             "start": start,
             "end": end,
@@ -116,7 +117,7 @@ def generate_instance(
 
     # Groups
     if groups_size <= 0:
-        groups = pl.DataFrame({"resource_name": [], "group_name": []})
+        resource_groups = pl.DataFrame({"resource_name": [], "group_name": []})
     else:
         group_rows: list[dict] = []
         for i in range(n_groups):
@@ -124,31 +125,15 @@ def generate_instance(
             members = random.sample(resource_names, min(groups_size, n_resources))
             for m in members:
                 group_rows.append({"resource_name": m, "group_name": g_name})
-        groups = pl.DataFrame(group_rows)
-
-    # Resources to tasks assignment
-    task_names = tasks["name"].unique().to_list()
-    ra_rows: list[dict] = []
-    mu, sigma = _get_lognorm_params(avg_eligible_resources, avg_eligible_resources * 0.25)
-    for t_name in task_names:
-        n_eligible = round(random.lognormvariate(mu, sigma))
-        eligible_resources = random.sample(resource_names, min(n_resources, n_eligible))
-        for r_name in eligible_resources:
-            is_forced = random.random() < forced_ratio
-            ra_rows.append({
-                "task_name": t_name,
-                "resource_name": r_name,
-                "type": "forced" if is_forced else "relaxed",
-            })
-    resource_assignments = pl.DataFrame(ra_rows)
+        resource_groups = pl.DataFrame(group_rows)
 
     # Groups to Meetings assignment
     if n_meetings <= 0 or n_groups <= 0:
         group_assignments = pl.DataFrame({"task_name": [], "group_name": [], "require_all_group": []})
     else:
         ga_rows: list[dict] = []
-        meeting_names = tasks.filter(pl.col.name.str.starts_with("Meeting"))["name"].unique().to_list()
-        group_names = groups["group_name"].unique().to_list()
+        meeting_names = tasks.filter(pl.col.task_name.str.starts_with("Meeting"))["task_name"].unique().to_list()
+        group_names = resource_groups["group_name"].unique().to_list()
         mu, sigma = _get_lognorm_params(avg_eligible_groups, avg_eligible_groups * 0.25)
         for m_name in meeting_names:
             n_eligible = round(random.lognormvariate(mu, sigma))
@@ -162,16 +147,55 @@ def generate_instance(
                 })
         group_assignments = pl.DataFrame(ga_rows)
 
-    resources.write_csv(output_path / "resources.csv")
-    tasks.write_csv(output_path / "tasks.csv")
-    groups.write_csv(output_path / "groups.csv")
-    resource_assignments.write_csv(output_path / "resource_assignments.csv")
-    group_assignments.write_csv(output_path / "group_assignments.csv")
+    # Resources to tasks assignment
+    task_names = tasks["task_name"].unique().to_list()
+    ra_rows: list[dict] = []
+    task_to_resource: set[tuple[str, str]] = set()
+
+    # Resources for assignments requiring an entire group
+    if not group_assignments.is_empty() and not resource_groups.is_empty():
+        all_group_assignments = (
+            group_assignments.filter(pl.col.require_all_group)
+            .join(resource_groups, on="group_name", how="inner")
+        )
+        for r_name, t_name in zip(all_group_assignments["resource_name"].to_list(), all_group_assignments["task_name"].to_list()):
+            is_forced = random.random() < forced_ratio
+            ra_rows.append({
+                "task_name": t_name,
+                "resource_name": r_name,
+                "type": "forced" if is_forced else "relaxed",
+            })
+            task_to_resource.add((t_name, r_name))
+    # Other resources
+    mu, sigma = _get_lognorm_params(avg_eligible_resources, avg_eligible_resources * 0.25)
+    for t_name in task_names:
+        n_eligible = round(random.lognormvariate(mu, sigma))
+        eligible_resources = random.sample(resource_names, min(n_resources, n_eligible))
+        force_assigned = False
+        for r_name in eligible_resources:
+            if (t_name, r_name) in task_to_resource:
+                continue
+            is_forced = (random.random() < forced_ratio) and (not force_assigned)
+            if is_forced: 
+                force_assigned = True
+            ra_rows.append({
+                "task_name": t_name,
+                "resource_name": r_name,
+                "type": "forced" if is_forced else "relaxed",
+            })
+            task_to_resource.add((t_name, r_name))
+    resource_assignments = pl.DataFrame(ra_rows)
+
+    resources.write_csv(output_path / InputFiles.RESOURCES)
+    tasks.write_csv(output_path / InputFiles.TASKS)
+    resource_groups.write_csv(output_path / InputFiles.RESOURCE_GROUPS)
+    resource_assignments.write_csv(output_path / InputFiles.RESOURCE_ASSIGNMENTS)
+    group_assignments.write_csv(output_path / InputFiles.GROUP_ASSIGNMENTS)
 
     logger.info(f"Instance written to {output_path.as_posix()}/")
     logger.info(f"  Resources: {resources.height}")
     logger.info(f"  Tasks: {tasks.height} ({n_classes} classes + {n_meetings} meetings)")
-    logger.info(f"  Groups: {groups.unique('group_name').height}")
+    logger.info(f"  Resource Groups: {resource_groups.unique('group_name').height}")
     logger.info(f"  Resource assignments: {resource_assignments.height}")
     logger.info(f"  Group assignments: {group_assignments.height}")
 
