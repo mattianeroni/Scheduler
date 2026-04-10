@@ -13,6 +13,7 @@ from scheduler.io.resource import Resources
 from scheduler.io.group import ResourceGroups
 from scheduler.io.assignment import ResourceAssignments, GroupAssignments
 from scheduler.problem.problem import SchedulingProblem
+from scheduler.solver.model import SchedulingModel
 from scheduler.utils import setup_logging
 
 logger = logging.getLogger(__name__)
@@ -70,8 +71,8 @@ class Scheduler:
         setup_logging(self.output_path)
 
         logger.info("Scheduler execution.")
-        logger.info(f"Input folder: {self.input_path.as_posix()}")
-        logger.info(f"Output folder: {self.input_path.as_posix()}")
+        logger.info(f"Input folder: {self.input_path.as_posix()}.")
+        logger.info(f"Output folder: {self.output_path.as_posix()}.")
 
         self._validate_input()
         logger.info("All input files detected.")
@@ -84,6 +85,14 @@ class Scheduler:
 
         problem.build()
         problem.validate()
+
+        model = SchedulingModel(problem)
+        model.build()
+        solution = model.solve()
+
+        logger.info("Writing solution.")
+        solution.write(self.output_path)
+        logger.info(f"Solution output written to {self.output_path.as_posix()}.")
 
         logger.info("Schedule execution concluded successfully.")
     

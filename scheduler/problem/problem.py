@@ -43,6 +43,15 @@ class SchedulingProblem:
         self._build_group_assignments()
         logger.info("Problem build concluded.")
 
+    def validate(self):
+        logger.info("Problem validation started.")
+        self._validate_tasks_ending_time()
+        self._validate_tasks_have_enough_resources()
+        self._validate_group_tasks_missing_resource()
+        self._validate_individual_tasks_forced_resources()
+        self._validate_multiple_all_group_assignments()
+        logger.info("Problem validation concluded.")
+
     def _build_resources(self):
         self.resources.df = self.resources.df.with_row_index("id")
 
@@ -97,6 +106,13 @@ class SchedulingProblem:
             delta = self.group_assignments.df.height - group_assignments_df.height
             logger.warning(f"Group assignments eliminated because using unexisting tasks or groups: {delta}")
         self.group_assignments.df = group_assignments_df.with_row_index("id")
+
+    def _validate_tasks_ending_time(self):
+        # Check no task is ending after time horizon
+        overtime_tasks = self.tasks.df.filter((pl.col.end.is_not_null()) & (pl.col.end > self.config.timehorizon))
+        if not overtime_tasks.is_empty():
+            tasks = overtime_tasks["task_name"].unique().to_list()
+            raise SchedulerValidationError(f"Detected tasks ending after time horizon ({self.config.timehorizon}): {tasks}")
 
     def _validate_tasks_have_enough_resources(self):
         # Check presence of tasks with no resources associated
@@ -173,11 +189,3 @@ class SchedulingProblem:
         if not group_tasks.is_empty():
             tasks = group_tasks["task_name"].unique().to_list()
             logger.warning(f"Detected tasks requiring multiple entire groups: {tasks}. Please, consider to create a new group as union of the previous ones.")
-
-    def validate(self):
-        logger.info("problem validation started.")
-        self._validate_tasks_have_enough_resources()
-        self._validate_group_tasks_missing_resource()
-        self._validate_individual_tasks_forced_resources()
-        self._validate_multiple_all_group_assignments()
-        logger.info("problem validation concluded.")

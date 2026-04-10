@@ -34,6 +34,7 @@ dependencies = [
   "polars-runtime-32==1.39.3",
   "pycparser==3.0",
   "pyparsing==3.3.2",
+  "pyscipopt",
   "python-dateutil==2.9.0.post0",
   "scipy==1.17.1",
   "scs==3.2.11",
