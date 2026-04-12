@@ -6,13 +6,17 @@ import logging
 from typing import TYPE_CHECKING
 
 from scheduler.error import SchedulerValidationError
+from scheduler.builder.task import TasksBuilder
+from scheduler.builder.resource import ResourcesBuilder
+from scheduler.builder.group import ResourceGroupsBuilder
+from scheduler.builder.assignment import ResourceAssignmentsBuilder, GroupAssignmentsBuilder, ResourceAssignmentCombinationsBuilder
 
 if TYPE_CHECKING:
     from scheduler.config import Config
-    from scheduler.io.resource import Resources
-    from scheduler.io.task import Tasks
-    from scheduler.io.group import ResourceGroups
-    from scheduler.io.assignment import ResourceAssignments, GroupAssignments
+    from scheduler.reader.resource import ResourcesReader
+    from scheduler.reader.task import TasksReader
+    from scheduler.reader.group import ResourceGroupsReader
+    from scheduler.reader.assignment import ResourceAssignmentsReader, GroupAssignmentsReader
 
 logger = logging.getLogger(__name__)
 
@@ -21,26 +25,47 @@ class SchedulingProblem:
 
     def __init__(self, 
             config: Config,
-            tasks: Tasks, 
-            resources: Resources, 
-            resource_groups: ResourceGroups, 
-            resource_assignments: ResourceAssignments,
-            group_assignments: GroupAssignments,
+            tasks_reader: TasksReader, 
+            resources_reader: ResourcesReader, 
+            resource_groups_reader: ResourceGroupsReader, 
+            resource_assignments_reader: ResourceAssignmentsReader,
+            group_assignments_reader: GroupAssignmentsReader,
         ):
         self.config = config
-        self.tasks = tasks
-        self.resources = resources
-        self.resource_groups = resource_groups
-        self.resource_assignments = resource_assignments
-        self.group_assignments = group_assignments
+        self.tasks_reader = tasks_reader
+        self.resources_reader = resources_reader
+        self.resource_groups_reader = resource_groups_reader
+        self.resource_assignments_reader = resource_assignments_reader
+        self.group_assignments_reader = group_assignments_reader
+
+        self.tasks: TasksBuilder | None = None 
+        self.resources: ResourcesBuilder | None = None 
+        self.resource_groups: ResourceGroupsBuilder | None = None
+        self.resource_assignments: ResourceAssignmentsBuilder | None = None
+        self.group_assignments: GroupAssignmentsBuilder | None = None 
+        self.resource_assignment_combinations: ResourceAssignmentCombinationsBuilder | None = None
 
     def build(self):
         logger.info("Problem build started.")
-        self._build_resources()
-        self._build_tasks()
-        self._build_resource_groups()
-        self._build_resource_assignments()
-        self._build_group_assignments()
+        self.resources = ResourcesBuilder(resources_reader=self.resources_reader)
+        self.tasks = TasksBuilder(tasks_reader=self.tasks_reader)
+        self.resource_groups = ResourceGroupsBuilder(
+            resource_groups_reader=self.resource_groups_reader, 
+            resources=self.resources,
+        )
+        self.resource_assignments = ResourceAssignmentsBuilder(
+            resource_assignments_reader=self.resource_assignments_reader, 
+            tasks=self.tasks, 
+            resources=self.resources,
+        )
+        self.group_assignments = GroupAssignmentsBuilder(
+            group_assignments_reader=self.group_assignments_reader,
+            tasks=self.tasks,
+            resource_groups=self.resource_groups,
+        )
+        self.resource_assignment_combinations = ResourceAssignmentCombinationsBuilder(
+            resource_assignments=self.resource_assignments
+        )
         logger.info("Problem build concluded.")
 
     def validate(self):
@@ -51,61 +76,6 @@ class SchedulingProblem:
         self._validate_individual_tasks_forced_resources()
         self._validate_multiple_all_group_assignments()
         logger.info("Problem validation concluded.")
-
-    def _build_resources(self):
-        self.resources.df = self.resources.df.with_row_index("id")
-
-    def _build_tasks(self):
-        self.tasks.df = self.tasks.df.with_row_index("id")
-
-    def _build_resource_groups(self):
-        # Filter resource groups made by unexisting resources
-        resource_groups_df = (
-            self.resource_groups.df.explode("resource_name")
-            .filter(pl.col.resource_name.is_in(self.resources.df["resource_name"]))
-            .group_by("group_name").agg("resource_name")
-        )
-        if (delta := self.resource_groups.df.height - resource_groups_df.height) > 0:
-            logger.warning(f"Resource groups eliminated because made by unexisting resources: {delta}")
-        self.resource_groups.df = resource_groups_df.with_row_index("id")
-
-    def _build_resource_assignments(self):
-        columns = self.resource_assignments.df.columns
-        # Filter resource assignments made by unexisting tasks or resources
-        df = (
-            self.resource_assignments.df.filter(
-                (pl.col.task_name.is_in(self.tasks.df["task_name"]))
-                & (pl.col.resource_name.is_in(self.resources.df["resource_name"]))
-            )
-        )
-        if (delta := self.resource_assignments.df.height - df.height) > 0:
-            logger.warning(f"Resource assignments eliminated because using unexisting tasks or resources: {delta}")
-
-        # Filter resource assignmetns for which the capacity of the resource is not even enough to cover the entire task
-        # NOTE: We don't allow assignment of multiple resources to complete a task
-        resource_assignments_df = (
-            df
-            .join(self.tasks.df.select("task_name", "duration"), on="task_name", how="inner")
-            .join(self.resources.df.select("resource_name", "capacity"), on="resource_name", how="inner")
-            .filter(pl.col.capacity > pl.col.duration)
-        )
-        if (delta := df.height - resource_assignments_df.height) > 0:
-            logger.warning(f"Resource assignments eliminated because using unexisting tasks or resources: {delta}")
-
-        self.resource_assignments.df = resource_assignments_df.select(columns).with_row_index("id")
-
-    def _build_group_assignments(self):
-        # Filter groups assignments made by unexisting (or already filtered) groups or tasks
-        group_assignments_df = (
-            self.group_assignments.df.filter(
-                (pl.col.task_name.is_in(self.tasks.df["task_name"]))
-                & (pl.col.group_name.is_in(self.resource_groups.df["group_name"]))
-            )
-        )
-        if group_assignments_df.height < self.group_assignments.df.height:
-            delta = self.group_assignments.df.height - group_assignments_df.height
-            logger.warning(f"Group assignments eliminated because using unexisting tasks or groups: {delta}")
-        self.group_assignments.df = group_assignments_df.with_row_index("id")
 
     def _validate_tasks_ending_time(self):
         # Check no task is ending after time horizon

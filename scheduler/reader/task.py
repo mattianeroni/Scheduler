@@ -4,10 +4,10 @@ import pandera.polars as pa
 import polars as pl
 from pandera.typing.polars import Series
 
-from scheduler.io.base import BaseInput
+from scheduler.reader.base import BaseReader
 
 
-class TaskSchema(pa.DataFrameModel):
+class TaskReaderSchema(pa.DataFrameModel):
     task_name: Series[str] = pa.Field(coerce=True, unique=True)
     duration: Series[int] = pa.Field(coerce=True, gt=0)
     start: Series[int] = pa.Field(coerce=True, ge=0, nullable=True)
@@ -43,10 +43,10 @@ class TaskSchema(pa.DataFrameModel):
             .item()
         )
 
-class Tasks(BaseInput):
+class TasksReader(BaseReader):
 
     def __init__(self, filepath: str):
-        super().__init__(filepath, schema=TaskSchema)
+        super().__init__(filepath, schema=TaskReaderSchema)
 
     def _transform(self, df: pl.DataFrame) -> pl.DataFrame:
         return (

@@ -8,7 +8,7 @@ from pandera.errors import SchemaError
 from scheduler.error import SchedulerIOError
 
 
-class BaseInput(ABC):
+class BaseReader(ABC):
     def __init__(self, filepath: str, schema: pa.DataFrameModel):
         self.filepath = filepath
         self.schema = schema
@@ -17,7 +17,7 @@ class BaseInput(ABC):
         try:
             self.schema.validate(df)
         except SchemaError as e:
-            raise ("IO Schema Validation Failed.") from e
+            raise SchedulerIOError(f"IO schema validation failed: {str(e)}")
         
         self.df = self._transform(df)
 

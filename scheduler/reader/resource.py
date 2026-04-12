@@ -4,9 +4,9 @@ import pandera.polars as pa
 import polars as pl
 from pandera.typing.polars import Series
 
-from scheduler.io.base import BaseInput
+from scheduler.reader.base import BaseReader
 
-class ResourceSchema(pa.DataFrameModel):
+class ResourceReaderSchema(pa.DataFrameModel):
     resource_name: Series[str] = pa.Field(coerce=True, unique=True)
     capacity: Series[float] = pa.Field(coerce=True, ge=0)
 
@@ -23,10 +23,10 @@ class ResourceSchema(pa.DataFrameModel):
         return data.lazyframe.select((pl.col.capacity > 0).all()).collect().item()
 
 
-class Resources(BaseInput):
+class ResourcesReader(BaseReader):
 
     def __init__(self, filepath: str):
-        super().__init__(filepath, schema=ResourceSchema)
+        super().__init__(filepath, schema=ResourceReaderSchema)
 
     def _transform(self, df: pl.DataFrame) -> pl.DataFrame:
         return df

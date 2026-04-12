@@ -8,10 +8,10 @@ import tomllib
 from scheduler.files_properties import InputFiles
 from scheduler.config import Config
 from scheduler.error import SchedulerIOError
-from scheduler.io.task import Tasks
-from scheduler.io.resource import Resources
-from scheduler.io.group import ResourceGroups
-from scheduler.io.assignment import ResourceAssignments, GroupAssignments
+from scheduler.reader.task import TasksReader
+from scheduler.reader.resource import ResourcesReader
+from scheduler.reader.group import ResourceGroupsReader
+from scheduler.reader.assignment import ResourceAssignmentsReader, GroupAssignmentsReader
 from scheduler.problem.problem import SchedulingProblem
 from scheduler.solver.model import SchedulingModel
 from scheduler.utils import setup_logging
@@ -52,18 +52,18 @@ class Scheduler:
         return Config(**config_data)
 
     def _load_problem(self, config: Config) -> SchedulingProblem:
-        tasks = Tasks(self.input_path / InputFiles.TASKS)
-        resources = Resources(self.input_path / InputFiles.RESOURCES)
-        resource_groups = ResourceGroups(self.input_path / InputFiles.RESOURCE_GROUPS)
-        resource_assignments = ResourceAssignments(self.input_path / InputFiles.RESOURCE_ASSIGNMENTS)
-        group_assignments = GroupAssignments(self.input_path / InputFiles.GROUP_ASSIGNMENTS)
+        tasks_reader = TasksReader(self.input_path / InputFiles.TASKS)
+        resources_reader = ResourcesReader(self.input_path / InputFiles.RESOURCES)
+        resource_groups_reader = ResourceGroupsReader(self.input_path / InputFiles.RESOURCE_GROUPS)
+        resource_assignments_reader = ResourceAssignmentsReader(self.input_path / InputFiles.RESOURCE_ASSIGNMENTS)
+        group_assignments_reader = GroupAssignmentsReader(self.input_path / InputFiles.GROUP_ASSIGNMENTS)
         return SchedulingProblem(
             config=config,
-            tasks=tasks, 
-            resources=resources, 
-            resource_groups=resource_groups, 
-            resource_assignments=resource_assignments,
-            group_assignments=group_assignments,
+            tasks_reader=tasks_reader, 
+            resources_reader=resources_reader, 
+            resource_groups_reader=resource_groups_reader, 
+            resource_assignments_reader=resource_assignments_reader,
+            group_assignments_reader=group_assignments_reader,
         )
 
     def run(self):
