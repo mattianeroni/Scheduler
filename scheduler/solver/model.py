@@ -71,42 +71,60 @@ class SchedulingModel:
         
         self.solution = SchedulingSolution(
             problem = self.problem,
-            tasks_df = self.problem.tasks.df.with_columns(
-                start_solution = self._variables["task_start"].value[self.problem.tasks.df["id"].to_numpy()],
-                end_solution = self._variables["task_end"].value[self.problem.tasks.df["id"].to_numpy()],
+            tasks_df = self.problem.tasks_df.with_columns(
+                start_solution = self._variables["task_start"].value[self.problem.tasks_df["id"].to_numpy()],
+                end_solution = self._variables["task_end"].value[self.problem.tasks_df["id"].to_numpy()],
             ),
-            assignments_df=self.problem.resource_assignments.df.with_columns(
-                assignment_solution = self._variables["assignment"].value[self.problem.resource_assignments.df["id"].to_numpy()]
+            assignments_df=self.problem.resource_assignments_df.with_columns(
+                assignment_solution = self._variables["assignment"].value[self.problem.resource_assignments_df["id"].to_numpy()]
             )
         )
         logger.info("Model solve concluded.")
         return self.solution
         
     def _build_variables(self):
-        self._variables["assignment"] = cp.Variable(self.problem.resource_assignments.df.height, boolean=True)
-        self._variables["task_start"] = cp.Variable(self.problem.tasks.df.height, integer=True, nonneg=True)
-        self._variables["task_end"] = cp.Variable(self.problem.tasks.df.height, integer=True, nonneg=True)
+        self._variables["assignment"] = cp.Variable(self.problem.resource_assignments_df.height, boolean=True)
+        self._variables["task_start"] = cp.Variable(self.problem.tasks_df.height, integer=True, nonneg=True)
+        self._variables["task_end"] = cp.Variable(self.problem.tasks_df.height, integer=True, nonneg=True)
+        self._variables["resource_overlap"] = cp.Variable(self.problem.resource_assignment_combinations_df.height, boolean=True)
+        self._variables["time_overlap"] = cp.Variable(self.problem.resource_assignment_combinations_df.height, boolean=True)
+        self._variables["overlap"] = cp.Variable(self.problem.resource_assignment_combinations_df.height, boolean=True)
 
     def _build_objective(self):
-        self._objective = cp.Minimize(cp.sum(self._variables["assignment"]) + cp.sum(self._variables["task_start"] + self._variables["task_end"]))
+        overlaps = cp.sum(self._variables["overlap"])
+        self._objective = cp.Minimize(overlaps)
 
     def _build_constraints(self):
+        self._time_overlap_constraints()
+        self._resource_overlap_constraints()
         self._rigid_tasks_constraints()
         self._tasks_duration_constraints()
         self._tasks_lead_time_constaints()
 
+    def _time_overlap_constraints(self):
+        pass
+
+    def _resource_overlap_constraints(self):
+        """Ensure the resource overlap variables are 1 when both tasks use same resources and 0 otherwise."""
+        combinations_ids = self.problem.resource_assignment_combinations_df["id"].to_numpy()
+        first_assignment_ids = self.problem.resource_assignment_combinations_df["assignment_left_id"].to_numpy()
+        second_assignment_ids = self.problem.resource_assignment_combinations_df["assignment_right_id"].to_numpy()
+        first_assignment_vars = get_variables(self._variables["assignment"], first_assignment_ids)
+        second_assignment_vars = get_variables(self._variables["assignment"], second_assignment_ids)
+        resource_overlap_vars = get_variables(self._variables["resource_overlap"], combinations_ids)
+        self._constraints.append(resource_overlap_vars + 1 >= first_assignment_vars + second_assignment_vars)
+
     def _rigid_tasks_constraints(self):
         """Rigid tasks must start when user says."""
-        rigid_tasks = self.problem.tasks.df.filter(pl.col.type == "rigid").select("id", "start")
+        rigid_tasks = self.problem.tasks_df.filter(pl.col.type == "rigid").select("id", "start")
         if rigid_tasks.is_empty():
             return 
-        
         start_vars = get_variables(self._variables["task_start"], rigid_tasks["id"].to_numpy())
         self._constraints.append(start_vars == rigid_tasks["start"].to_numpy())
 
     def _tasks_duration_constraints(self):
         """Tasks end must be equal to start + duration."""
-        tasks = self.problem.tasks.df.select("id", "duration")
+        tasks = self.problem.tasks_df.select("id", "duration")
         start_vars = get_variables(self._variables["task_start"], tasks["id"].to_numpy())
         end_vars = get_variables(self._variables["task_end"], tasks["id"].to_numpy())
         self._constraints.append(start_vars + tasks["duration"].to_numpy() <= end_vars)  # Eventually set equal

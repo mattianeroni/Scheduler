@@ -91,7 +91,7 @@ class Scheduler:
         solution = model.solve()
 
         logger.info("Writing solution.")
-        solution.write(self.output_path)
+        #solution.write(self.output_path)
         logger.info(f"Solution output written to {self.output_path.as_posix()}.")
 
         logger.info("Schedule execution concluded successfully.")

@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+import polars as pl
 from scheduler.reader.task import TasksReader
 
 
 class TasksBuilder:
-    def __init__(self, tasks_reader: TasksReader):
-        self.df = tasks_reader.df.with_row_index("id")
+    def build(tasks_reader: TasksReader) -> pl.DataFrame:
+        return tasks_reader.df.with_row_index("id")

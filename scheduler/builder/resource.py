@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+import polars as pl
 from scheduler.reader.resource import ResourcesReader
 
 
 class ResourcesBuilder:
-    def __init__(self, resources_reader: ResourcesReader):
-        self.df = resources_reader.df.with_row_index("id")
+    def build(resources_reader: ResourcesReader)  -> pl.DataFrame:
+        return resources_reader.df.with_row_index("id")
