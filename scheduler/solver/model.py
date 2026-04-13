@@ -100,6 +100,8 @@ class SchedulingModel:
         self._rigid_tasks_constraints()
         self._tasks_duration_constraints()
         self._tasks_lead_time_constaints()
+        self._all_tasks_assigned_constraints() 
+        self._forced_assignments_constraints()
 
     def _time_overlap_constraints(self):
         pass
@@ -133,7 +135,15 @@ class SchedulingModel:
         """Tasks must be concluded before end of time horizon."""
         self._constraints.append(self._variables["task_end"] <= self.problem.config.timehorizon)
 
+    def _all_tasks_assigned_constraints(self):
+        """Each task is assigned to at least a resource."""
+        task_to_assignment = self.problem.resource_assignments_df.group_by("task_name").agg(pl.col.id)
+        self._constraints.append(get_variables(self._variables["assignment"], task_to_assignment["id"].to_numpy()) >= 1)
 
-        
+    def _forced_assignments_constraints(self):
+        """Forced assignments are respected."""
+        forced_assignments_id = self.problem.resource_assignments_df.filter(pl.col.type == "forced")["id"].to_numpy()
+        assignemnts_vars = get_variables(self._variables["assignment"], forced_assignments_id)
+        self._constraints.append(assignemnts_vars == 1)
 
 
