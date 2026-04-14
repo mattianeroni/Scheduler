@@ -86,9 +86,9 @@ class Scheduler:
         problem.build()
         problem.validate()
 
-        model = SchedulingModel(problem)
-        model.build()
-        solution = model.solve()
+        #model = SchedulingModel(problem)
+        #model.build()
+        #solution = model.solve()
 
         logger.info("Writing solution.")
         #solution.write(self.output_path)
