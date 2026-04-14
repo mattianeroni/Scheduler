@@ -64,7 +64,8 @@ class SchedulingProblem:
             resource_groups=self.resource_groups,
         )
         self.resource_assignment_combinations = ResourceAssignmentCombinationsBuilder(
-            resource_assignments=self.resource_assignments
+            resource_assignments=self.resource_assignments,
+            tasks=self.tasks,
         )
         logger.info("Problem build concluded.")
 

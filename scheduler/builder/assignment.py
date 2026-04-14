@@ -42,8 +42,8 @@ class ResourceAssignmentCombinationBuilderSchema(pa.DataFrameModel):
     assignment_right_id: Series[int] = pa.Field(coerce=True)
     task_name_left: Series[str] = pa.Field(coerce=True)
     task_name_right: Series[str] = pa.Field(coerce=True)
-    type_left: Series[str] = pa.Field(coerce=True, isin=["forced", "relaxed"])
-    type_right: Series[str] = pa.Field(coerce=True, isin=["forced", "relaxed"])
+    type_left: Series[str] = pa.Field(coerce=True, isin=["rigid", "fluid"])
+    type_right: Series[str] = pa.Field(coerce=True, isin=["rigid", "fluid"])
 
     @pa.dataframe_check(error="Assignments combinations id must be unique.")
     def primary_key_check(cls, data: pa.PolarsData):
@@ -105,18 +105,19 @@ class GroupAssignmentsBuilder(BaseBuilder):
 
 class ResourceAssignmentCombinationsBuilder(BaseBuilder):
     
-    def __init__(self, resource_assignments: ResourceAssignmentsReader):
+    def __init__(self, resource_assignments: ResourceAssignmentsReader, tasks: TasksBuilder):
+        self.tasks = tasks
         super().__init__(df=resource_assignments.df, schema=ResourceAssignmentCombinationBuilderSchema)
 
     def _build(self, df: pl.DataFrame) -> pl.DataFrame:
+        assignments = df.select("id", "resource_name", "task_name")
         return (
-            df.join(df, how="cross")
+            assignments.join(assignments, how="cross")
             .rename({
                 "id": "assignment_left_id", 
                 "id_right": "assignment_right_id",
                 "resource_name": "resource_name_left",
                 "task_name": "task_name_left",
-                "type": "type_left"
             })
             .filter(
                 (pl.col.resource_name_left == pl.col.resource_name_right) 
@@ -124,5 +125,15 @@ class ResourceAssignmentCombinationsBuilder(BaseBuilder):
             )
             .rename({"resource_name_left": "resource_name"})
             .drop("resource_name_right")
+            .join(
+                self.tasks.df.select(pl.col("task_name").alias("task_name_left"), pl.col("type").alias("type_left")),
+                on="task_name_left",
+                how="inner"
+            )
+            .join(
+                self.tasks.df.select(pl.col("task_name").alias("task_name_right"), pl.col("type").alias("type_right")),
+                on="task_name_right",
+                how="inner"
+            )
             .with_row_index("id")
         )

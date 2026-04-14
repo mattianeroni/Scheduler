@@ -1,8 +1,8 @@
 task_name,resource_name,type
-Meeting_2,Prof_8,forced
+Meeting_2,Prof_8,relaxed
 Meeting_2,Prof_7,relaxed
 Meeting_2,Prof_3,relaxed
-Meeting_2,Prof_9,forced
+Meeting_2,Prof_9,relaxed
 Geography_0,Prof_5,relaxed
 Geography_0,Prof_1,relaxed
 Geography_0,Prof_6,relaxed
@@ -20,7 +20,7 @@ History_1,Prof_1,relaxed
 History_1,Prof_4,relaxed
 History_1,Prof_8,relaxed
 PE_1,Prof_3,relaxed
-PE_1,Prof_8,forced
+PE_1,Prof_8,relaxed
 PE_1,Prof_4,relaxed
 Economics_0,Prof_0,relaxed
 Economics_0,Prof_7,relaxed
@@ -43,11 +43,11 @@ Art_0,Prof_4,relaxed
 Art_0,Prof_5,relaxed
 Music_0,Prof_6,relaxed
 Music_0,Prof_1,relaxed
-Music_0,Prof_3,forced
+Music_0,Prof_3,relaxed
 Philosophy_0,Prof_9,relaxed
 Philosophy_0,Prof_6,relaxed
-Philosophy_0,Prof_3,forced
-Physics_0,Prof_1,forced
+Philosophy_0,Prof_3,relaxed
+Physics_0,Prof_1,relaxed
 Physics_0,Prof_0,relaxed
 Biology_1,Prof_0,relaxed
 Biology_1,Prof_2,relaxed
@@ -108,7 +108,7 @@ English_0,Prof_2,relaxed
 PE_0,Prof_9,relaxed
 PE_0,Prof_1,relaxed
 PE_0,Prof_5,relaxed
-PE_0,Prof_0,forced
+PE_0,Prof_0,relaxed
 Chemistry_0,Prof_9,relaxed
 Chemistry_0,Prof_6,relaxed
-Chemistry_0,Prof_7,forced
+Chemistry_0,Prof_7,relaxed
