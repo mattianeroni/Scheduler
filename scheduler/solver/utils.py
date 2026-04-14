@@ -13,4 +13,4 @@ def get_variables(variables: cp.Variable, indices: npt.NDArray[np.int32]) -> cp.
     row_idx = np.repeat(np.arange(num_rows), [len(row) for row in indices])
     col_idx = np.concatenate(indices)
     A = csr_matrix((np.ones(len(col_idx)), (row_idx, col_idx)), shape=(num_rows, num_cols))
-    return cp.dot(A, variables)
+    return A @ variables
