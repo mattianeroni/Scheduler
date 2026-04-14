@@ -6,6 +6,8 @@ import polars as pl
 import logging 
 from typing import TYPE_CHECKING
 
+from scheduler.plot.plotter import plot_solution
+
 if TYPE_CHECKING:
     from scheduler.problem.problem import SchedulingProblem
 
@@ -31,3 +33,4 @@ class SchedulingSolution:
         )
         assignments.write_csv(output_path / "assignments.csv")
         tasks.write_csv(output_path / "tasks.csv")
+        plot_solution(assignments, tasks, output_path / "schedule.html")

@@ -62,10 +62,15 @@ class SchedulingModel:
         
             if self._model.status is None:
                 raise SchedulerModelError("Solver failed to return a status (Internal Error).")
-            
-            if self._model.status != "optimal":
+
+            if self._model.status not in ("optimal", "optimal_inaccurate"):
                 raise SchedulerModelError(f"Solver did not find an optimal solution. Status: {self._model.status}")
-            
+
+            if self._model.status == "optimal_inaccurate":
+                logger.warning(
+                    "Solver returned optimal_inaccurate. The solution is being accepted, "
+                    "but the objective gap may remain nonzero."
+                )
         except Exception as e:
             raise SchedulerModelError(f"An unexpected error occurred: {str(e)}")
         
@@ -91,12 +96,14 @@ class SchedulingModel:
         self._variables["overlap"] = cp.Variable(self.problem.resource_assignment_combinations.df.height, boolean=True)
 
     def _build_objective(self):
+        assignments = cp.sum(self._variables["assignment"])
         overlaps = cp.sum(self._variables["overlap"])
-        self._objective = cp.Minimize(overlaps)
+        self._objective = cp.Minimize(assignments + overlaps * self.problem.config.overlap_penalization)
 
     def _build_constraints(self):
         self._time_overlap_constraints()
         self._resource_overlap_constraints()
+        self._overlap_constraints()
         self._rigid_tasks_constraints()
         self._tasks_duration_constraints()
         self._tasks_lead_time_constaints()
@@ -104,8 +111,43 @@ class SchedulingModel:
         self._forced_assignments_constraints()
 
     def _time_overlap_constraints(self):
-        pass
-
+        """
+        constraints = [
+            S1 <= E2 + M * (1 - z),
+            S2 <= E1 + M * (1 - z),
+            E2 <= S1 + M * z,
+            E1 <= S2 + M * z,
+        ]
+        """
+        M = self.problem.config.timehorizon
+        comb = (
+            self.problem.resource_assignment_combinations.df.join(
+                self.problem.tasks.df.select(
+                    pl.col("id").alias("task_left_id"), 
+                    pl.col("task_name").alias("task_name_left"),
+                ),
+                on="task_name_left",
+                how="inner",
+            )
+            .join(
+                self.problem.tasks.df.select(
+                    pl.col("id").alias("task_right_id"), 
+                    pl.col("task_name").alias("task_name_right"),
+                ),
+                on="task_name_right",
+                how="inner",
+            )
+        )
+        overlap_vars = get_variables(self._variables["time_overlap"], comb["id"].to_numpy())
+        s1 = get_variables(self._variables["task_start"], comb["task_left_id"].to_numpy())
+        s2 = get_variables(self._variables["task_start"], comb["task_right_id"].to_numpy())
+        e1 = get_variables(self._variables["task_end"], comb["task_left_id"].to_numpy())
+        e2 = get_variables(self._variables["task_end"], comb["task_right_id"].to_numpy())
+        self._constraints.append(s1 <= e2 + M * (1 - overlap_vars))
+        self._constraints.append(s2 <= e1 + M * (1 - overlap_vars))
+        self._constraints.append(e2 <= s1 + M * overlap_vars)
+        self._constraints.append(e1 <= s2 + M * overlap_vars)
+        
     def _resource_overlap_constraints(self):
         """Ensure the resource overlap variables are 1 when both tasks use same resources and 0 otherwise."""
         combinations_ids = self.problem.resource_assignment_combinations.df["id"].to_numpy()
@@ -115,6 +157,9 @@ class SchedulingModel:
         second_assignment_vars = get_variables(self._variables["assignment"], second_assignment_ids)
         resource_overlap_vars = get_variables(self._variables["resource_overlap"], combinations_ids)
         self._constraints.append(resource_overlap_vars + 1 >= first_assignment_vars + second_assignment_vars)
+
+    def _overlap_constraints(self):
+        self._constraints.append(self._variables["overlap"] + 1 >= self._variables["resource_overlap"] + self._variables["time_overlap"])
 
     def _rigid_tasks_constraints(self):
         """Rigid tasks must start when user says."""
@@ -129,7 +174,7 @@ class SchedulingModel:
         tasks = self.problem.tasks.df.select("id", "duration")
         start_vars = get_variables(self._variables["task_start"], tasks["id"].to_numpy())
         end_vars = get_variables(self._variables["task_end"], tasks["id"].to_numpy())
-        self._constraints.append(start_vars + tasks["duration"].to_numpy() <= end_vars)  # Eventually set equal
+        self._constraints.append(start_vars + tasks["duration"].to_numpy() == end_vars)  
 
     def _tasks_lead_time_constaints(self):
         """Tasks must be concluded before end of time horizon."""
