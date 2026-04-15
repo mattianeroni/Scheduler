@@ -1,5 +1,29 @@
 # Scheduler
 
+A scheduling optimizer designed for the common school problem of assigning professors to classes and meetings across a weekly timetable. Given a set of tasks (classes, meetings), resources (professors), and constraints, the solver finds a feasible schedule that minimizes resource usage and time conflicts.
+
+![Schedule](test/output/schedule.png)
+
+## Concepts
+
+- **Tasks** are classes or meetings that need to be scheduled. A task can be *rigid* (fixed time slot) or *fluid* (the solver decides when it starts).
+- **Resources** are professors. Each resource has a maximum capacity (total hours available in the time horizon).
+- **Resource groups** are named sets of professors (e.g., a department). A task can be assigned to a group, optionally requiring *all* members of the group to be present (useful for meetings).
+- **Assignments** link tasks to eligible resources. An assignment can be *relaxed* (the solver decides whether to use it) or *forced* (the resource must be assigned to that task).
+
+## Input files
+
+All input files live in a single folder. See `test/test_instance/` for a working example.
+
+| File | Columns | Description |
+|---|---|---|
+| `config.toml` | `timehorizon`, `max_time`, `overlap_penalization`, `optimization_gap`, `verbose` | Solver configuration. `timehorizon` is the scheduling window length. `max_time` is the solver time limit in seconds. |
+| `tasks.csv` | `task_name`, `duration`, `start`, `end`, `type` | One row per task. `type` is `rigid` or `fluid`. For rigid tasks, `start` and `end` are required. For fluid tasks, leave them empty. |
+| `resources.csv` | `resource_name`, `capacity` | One row per professor. `capacity` is the max hours available. |
+| `resource_groups.csv` | `resource_name`, `group_name` | Maps professors to groups. A professor can belong to multiple groups. |
+| `resource_assignments.csv` | `task_name`, `resource_name`, `type` | Eligible task-resource pairs. `type` is `forced` or `relaxed`. |
+| `group_assignments.csv` | `task_name`, `group_name`, `require_all_group` | Assigns tasks to groups. When `require_all_group` is `true`, every professor in the group must be assigned to the task. |
+
 
 ## Prerequisites
 

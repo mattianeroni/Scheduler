@@ -67,23 +67,22 @@ def plot_solution(assignments_df: pl.DataFrame, tasks_df: pl.DataFrame, output_p
         width = max(1, end - start)
         y = y_positions[resource_name]
 
-        ax.barh(
-            y,
-            width,
-            left=start,
-            height=0.8,
+        ax.plot(
+            [start, end],
+            [y, y],
             color=colors[task_name],
-            edgecolor="black",
+            linewidth=4,
+            solid_capstyle="butt",
             alpha=0.85,
         )
         ax.text(
             start + width / 2,
-            y,
+            y - 0.15,
             task_name,
-            va="center",
+            va="bottom",
             ha="center",
-            color="white",
-            fontsize=8,
+            color="black",
+            fontsize=7,
             clip_on=True,
         )
 

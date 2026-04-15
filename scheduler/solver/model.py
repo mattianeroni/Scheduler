@@ -32,6 +32,7 @@ class SchedulingModel:
         self._variables: dict[str, Variable] = {}
         self._constraints = []
         self._objective: Objective | None = None
+        self._overlaps: Expression = None
         self._model: cp.Problem | None = None
 
     def build(self):
@@ -80,6 +81,7 @@ class SchedulingModel:
             )
         )
         logger.info("Model solve concluded.")
+        logger.info(f"Overlap value: {self._overlaps.value}")
         return self.solution
         
     def _build_variables(self):
@@ -96,8 +98,8 @@ class SchedulingModel:
 
     def _build_objective(self):
         assignments =  cp.sum(self._variables["assignment"])
-        overlaps = cp.sum(self._variables["overlap"]) * self.problem.config.overlap_penalization
-        self._objective = cp.Minimize(assignments + overlaps)
+        self._overlaps = cp.sum(self._variables["overlap"])
+        self._objective = cp.Minimize(assignments + self._overlaps * self.problem.config.overlap_penalization)
 
     def _build_constraints(self):
         self._time_overlap_constraints()
